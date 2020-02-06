@@ -1,43 +1,43 @@
 package com.chsltutorials.marvelcharacters.ui
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.paging.PagedList
+import androidx.paging.RxPagedListBuilder
 import com.chsltutorials.marvelcharacters.model.api.MarvelAPI
 import com.chsltutorials.marvelcharacters.model.entity.Character
+import com.chsltutorials.marvelcharacters.model.paging.CharactersDataSourceFactory
 import io.reactivex.Observable
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.schedulers.Schedulers
 
 class CharactersViewModel : ViewModel(){
 
-    var isLoading : Boolean = false
-        private set
+    var characterList: Observable<PagedList<Character>>
 
-    var currentPage = -1
-        private set
+    private val compositeDisposable = CompositeDisposable()
 
-    private val characters = mutableListOf<Character>()
+    private val pageSize = 20
 
-    fun load(page : Int) : Observable<Character> {
-        isLoading = true
-        Log.d("CHSL","página: $page | pagina atual: $currentPage")
+    private val sourceFactory: CharactersDataSourceFactory
 
-        return if(page <= currentPage) {
-            Observable.fromIterable(characters)
-        }else {
-            currentPage = page
-            MarvelAPI.getService().allCharacters(page * 20)
-                .flatMapIterable {response ->
-                    response.data.results
-                }
-                .doOnNext { c->
-                    characters.add(c)
-                    Observable.just(c)
-                }
-        }.doOnComplete { isLoading = false }
+    init {
+        sourceFactory = CharactersDataSourceFactory(compositeDisposable, MarvelAPI.getService())
+
+        val config = PagedList.Config.Builder()
+            .setPageSize(pageSize)
+            .setInitialLoadSizeHint(pageSize * 1)
+            .setPrefetchDistance(10)
+            .setEnablePlaceholders(false)
+            .build()
+
+        characterList = RxPagedListBuilder(sourceFactory, config)
+            .setFetchScheduler(Schedulers.io())
+            .buildObservable()
+            //.cache()
     }
 
-    fun reset(){
-        isLoading = false
-        currentPage = -1
-        characters.clear()
+    override fun onCleared() {
+        super.onCleared()
+        compositeDisposable.clear()
     }
 }

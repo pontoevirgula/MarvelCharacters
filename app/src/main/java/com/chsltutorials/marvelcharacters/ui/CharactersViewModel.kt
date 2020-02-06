@@ -25,7 +25,7 @@ class CharactersViewModel : ViewModel(){
 
         val config = PagedList.Config.Builder()
             .setPageSize(pageSize)
-            .setInitialLoadSizeHint(pageSize * 1)
+            .setInitialLoadSizeHint(pageSize * 2)
             .setPrefetchDistance(10)
             .setEnablePlaceholders(false)
             .build()
